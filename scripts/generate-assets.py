@@ -4,12 +4,15 @@
 from __future__ import annotations
 
 import math
+import re
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageOps
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / ".rockbox" / "wps" / "h2yorushika"
+SBS_PATH = ROOT / ".rockbox" / "wps" / "h2yorushika.sbs"
+WPS_PATH = ROOT / ".rockbox" / "wps" / "h2yorushika.wps"
 LOGO_SRC = ROOT / "assets" / "yorushika-logo.png"
 
 # Elma's Diary palette: deep oxblood leather, warm brown edge, dusty-mauve
@@ -115,6 +118,68 @@ def bg_at(x: int, y: int) -> tuple[int, int, int]:
     return backdrop_color(x, y, grain=False)
 
 
+# Rendered backdrop, set in main() before any icon tile is built.
+BACKDROP: Image.Image | None = None
+
+
+def bg_tile(dx: int, dy: int, w: int, h: int, frames: int = 1) -> Image.Image:
+    """Icon background cut straight from the backdrop at the spot it is drawn.
+
+    Rockbox draws these tiles opaque, so matching the leather pixel-for-pixel
+    is what makes them blend. Multi-frame strips repeat the same crop because
+    every frame is drawn at the one viewport position.
+    """
+    if BACKDROP is None:
+        raise RuntimeError("BACKDROP not rendered yet")
+    crop = BACKDROP.crop((dx, dy, dx + w, dy + h)).convert("RGB")
+    if frames == 1:
+        return crop.copy()
+    img = Image.new("RGB", (w, h * frames))
+    for i in range(frames):
+        img.paste(crop, (0, i * h))
+    return img
+
+
+# Where each icon BMP is drawn on screen, parsed from the skin files so the
+# crops follow the layout instead of hardcoded coordinates that drift.
+POS: dict[str, tuple[int, int]] = {}
+
+
+def icon_positions() -> dict[str, tuple[int, int]]:
+    """Map icon filename -> (x, y) draw position from the .sbs / .wps skins.
+
+    Tracks the current %V(x,y,...) viewport and records the position of the
+    first %xd(label) that draws a label defined by %xl(label,file,...).
+    """
+    v_re = re.compile(r"%V\(\s*(-?\d+),\s*(-?\d+)")
+    xl_re = re.compile(r"%xl\(\s*([A-Za-z]),\s*([^,)]+)")
+    xd_re = re.compile(r"%xd\(\s*([A-Za-z])")
+    label_file: dict[str, str] = {}
+    pos: dict[str, tuple[int, int]] = {}
+    for path in (SBS_PATH, WPS_PATH):
+        if not path.exists():
+            continue
+        vp = (0, 0)
+        for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            for m in xl_re.finditer(line):
+                label_file[m.group(1)] = m.group(2).strip()
+            mv = v_re.search(line)
+            if mv:
+                vp = (int(mv.group(1)), int(mv.group(2)))
+            for m in xd_re.finditer(line):
+                fname = label_file.get(m.group(1))
+                if fname and fname not in pos:
+                    pos[fname] = vp
+    return pos
+
+
+def tile_at(fname: str, w: int, h: int, frames: int = 1, default: tuple[int, int] = (0, 0)) -> Image.Image:
+    """Background tile for an icon, cut from the backdrop at the icon's parsed
+    draw position so it blends regardless of where the skin places it."""
+    dx, dy = POS.get(fname, default)
+    return bg_tile(dx, dy, w, h, frames)
+
+
 def make_backdrop(width: int = 320, height: int = 240) -> Image.Image:
     img = Image.new("RGB", (width, height))
     px = img.load()
@@ -165,7 +230,7 @@ def paint_eye(img: Image.Image, ox: int, oy: int, gray: Image.Image, fg: tuple[i
 def make_logo(width: int = 30) -> Image.Image:
     gray = eye_gray(width)
     w, h = gray.size
-    img = Image.new("RGB", (w, h), bg_at(288 + w // 2, 12 + h // 2))
+    img = tile_at("logo.bmp", w, h, default=(4, 0))
     paint_eye(img, 0, 0, gray, AMBER_LIGHT)
     return img
 
@@ -209,7 +274,9 @@ def make_divider(w: int = 320, h: int = 2) -> Image.Image:
             t = (w - 1 - x) / fade
         else:
             t = 1.0
-        col = lerp_rgb(bg_at(x, 14), BRIGHT, t)
+        dy = POS.get("divider.bmp", (0, 16))[1]
+        base = BACKDROP.getpixel((x, dy)) if BACKDROP is not None else bg_at(x, dy)
+        col = lerp_rgb(base, BRIGHT, t)
         for y in range(h):
             px[x, y] = col
     return img
@@ -217,8 +284,7 @@ def make_divider(w: int = 320, h: int = 2) -> Image.Image:
 
 def make_battery(w: int = 22, h: int = 11) -> Image.Image:
     """Three-frame strip: low (1 bar), mid (2 bars), full (3 bars)."""
-    bg = bg_at(262, 7)
-    img = Image.new("RGB", (w, h * 3), bg)
+    img = tile_at("battery.bmp", w, h, frames=3, default=(254, 4))
     d = ImageDraw.Draw(img)
     c = BRIGHT
 
@@ -236,8 +302,7 @@ def make_battery(w: int = 22, h: int = 11) -> Image.Image:
 
 
 def make_shuffle(w: int = 14, h: int = 11) -> Image.Image:
-    bg = bg_at(96, 7)
-    img = Image.new("RGB", (w, h), bg)
+    img = tile_at("shuffle.bmp", w, h, default=(102, 4))
     d = ImageDraw.Draw(img)
     c = AMBER_LIGHT
     d.line([(1, 2), (12, 8)], fill=c, width=1)
@@ -249,8 +314,7 @@ def make_shuffle(w: int = 14, h: int = 11) -> Image.Image:
 
 def make_repeat(w: int = 14, h: int = 11) -> Image.Image:
     """Two-frame strip: repeat-all, repeat-one."""
-    bg = bg_at(112, 7)
-    img = Image.new("RGB", (w, h * 2), bg)
+    img = tile_at("repeat.bmp", w, h, frames=2, default=(118, 4))
     d = ImageDraw.Draw(img)
     c = AMBER_LIGHT
 
@@ -269,8 +333,7 @@ def make_repeat(w: int = 14, h: int = 11) -> Image.Image:
 
 def make_playmode(fw: int = 16, fh: int = 16) -> Image.Image:
     """Vertical 5-frame strip for %mp: stop, play, pause, ff, rew."""
-    bg = bg_at(8 + fw // 2, 177 + fh // 2)
-    img = Image.new("RGB", (fw, fh * 5), bg)
+    img = tile_at("playmode.bmp", fw, fh, frames=5, default=(82, 2))
     d = ImageDraw.Draw(img)
     c = AMBER_LIGHT
 
@@ -312,9 +375,13 @@ def save_bmp(path: Path, img: Image.Image) -> None:
 
 
 def main() -> None:
+    global BACKDROP, POS
     if not LOGO_SRC.exists():
         raise SystemExit(f"Missing logo source: {LOGO_SRC}")
-    save_bmp(OUT / "backdrop.bmp", make_backdrop())
+    POS = icon_positions()
+    print(f"Icon positions from skins: {POS}")
+    BACKDROP = make_backdrop()
+    save_bmp(OUT / "backdrop.bmp", BACKDROP)
     save_bmp(OUT / "pb.bmp", make_pb())
     save_bmp(OUT / "pb_back.bmp", make_pb_back())
     save_bmp(OUT / "logo.bmp", make_logo())
