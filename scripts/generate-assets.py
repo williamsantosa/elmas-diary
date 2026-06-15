@@ -15,6 +15,7 @@ ICON_OUT = ROOT / ".rockbox" / "icons"
 SBS_PATH = ROOT / ".rockbox" / "wps" / "h2yorushika.sbs"
 WPS_PATH = ROOT / ".rockbox" / "wps" / "h2yorushika.wps"
 LOGO_SRC = ROOT / "assets" / "yorushika-logo.png"
+TANGO_REF = ROOT / "assets" / "tango_ref.bmp"
 TANGO_VIEWERS_REF = ROOT / "assets" / "tango_viewers_ref.bmp"
 
 # Elma's Diary palette: deep oxblood leather, warm brown edge, dusty-mauve
@@ -30,13 +31,13 @@ TRACK = (0x32, 0x1A, 0x1E)
 TRACK_EDGE = (0x4E, 0x2C, 0x2C)
 DIM_AMBER = (0x4A, 0x3E, 0x30)
 
-CHROMA = (255, 0, 255)
+
 ICON_SIZE = 16
-ICON_COUNT = 32  # Icon_Last_Themeable in Rockbox
 ICON_COUNT = 32  # Icon_Last_Themeable in Rockbox
 INK = BRIGHT
 INK_DIM = AMBER_LIGHT
 INK_FAINT = AMBER
+INK_SHADOW = (0x6B, 0x52, 0x35)
 
 
 def clamp(v: int) -> int:
@@ -292,17 +293,20 @@ def make_divider(w: int = 320, h: int = 2) -> Image.Image:
     return img
 
 
-def make_battery(w: int = 22, h: int = 11) -> Image.Image:
+def make_battery(w: int = 21, h: int = 11) -> Image.Image:
     """Three-frame strip: low (1 bar), mid (2 bars), full (3 bars)."""
     img = tile_at("battery.bmp", w, h, frames=3, default=(254, 4))
     d = ImageDraw.Draw(img)
     c = BRIGHT
 
+    # Inner casing is x=2..14; keep 1px inset on both sides (x=2 and x=14).
+    CHARGE_X = (3, 7, 11)
+
     def cell(oy: int, segs: int) -> None:
-        d.rectangle([1, oy + 2, 16, oy + 8], outline=c, width=1)
-        d.rectangle([17, oy + 4, 18, oy + 6], fill=c)
+        d.rectangle([1, oy + 2, 15, oy + 8], outline=c, width=1)
+        d.rectangle([16, oy + 4, 17, oy + 6], fill=c)
         for i in range(segs):
-            x0 = 3 + i * 5
+            x0 = CHARGE_X[i]
             d.rectangle([x0, oy + 4, x0 + 2, oy + 6], fill=c)
 
     cell(0, 1)
@@ -372,253 +376,136 @@ def _icon_tile(draw_fn) -> Image.Image:
     return tile
 
 
-def _icon_strip(drawers: list) -> Image.Image:
-    strip = Image.new("RGBA", (ICON_SIZE, ICON_SIZE * len(drawers)), (0, 0, 0, 0))
-    for idx, drawer in enumerate(drawers):
-        strip.paste(_icon_tile(drawer), (0, idx * ICON_SIZE))
-    return strip
-
-
-def _draw_audio(d: ImageDraw.ImageDraw) -> None:
-    d.line([(5, 3), (5, 12)], fill=INK, width=1)
-    d.ellipse([6, 2, 10, 6], outline=INK)
-    d.polygon([(9, 9), (13, 7), (13, 11)], fill=INK)
-
-
-def _draw_folder(d: ImageDraw.ImageDraw) -> None:
+def _draw_menu_files(d: ImageDraw.ImageDraw) -> None:
+    d.polygon([(2, 6), (6, 6), (7, 4), (11, 4), (12, 6), (13, 6)], fill=INK_DIM)
     d.rectangle([2, 6, 13, 13], outline=INK)
-    d.polygon([(2, 6), (6, 6), (7, 4), (10, 4), (11, 6)], fill=INK_DIM)
 
 
-def _draw_playlist(d: ImageDraw.ImageDraw) -> None:
-    for y in (4, 7, 10):
-        d.line([(3, y), (13, y)], fill=INK, width=1)
-        d.rectangle([3, y, 5, y + 2], fill=INK_DIM)
+def _draw_menu_playlist(d: ImageDraw.ImageDraw) -> None:
+    d.rectangle([4, 2, 12, 13], outline=INK)
+    for y in (5, 8, 11):
+        d.line([(6, y), (11, y)], fill=INK_DIM)
+    d.ellipse([9, 10, 11, 12], fill=INK)
+    d.line([(10, 7), (10, 10)], fill=INK)
 
 
-def _draw_cursor(d: ImageDraw.ImageDraw) -> None:
-    d.polygon([(4, 3), (4, 12), (12, 7)], fill=INK)
+def _draw_menu_plugin(d: ImageDraw.ImageDraw) -> None:
+    c = INK
+    d.line([(8, 2), (8, 13)], fill=c)
+    d.line([(2, 7), (13, 7)], fill=c)
+    d.line([(4, 4), (12, 11)], fill=INK_DIM)
+    d.line([(12, 4), (4, 11)], fill=INK_DIM)
+    d.rectangle([7, 6, 8, 8], fill=c)
 
 
-def _draw_wps(d: ImageDraw.ImageDraw) -> None:
-    d.polygon([(5, 4), (5, 11), (12, 7)], fill=INK)
+def _draw_menu_theme(d: ImageDraw.ImageDraw) -> None:
+    """Theme Settings — screen + palette swatches (Icon_Wps, slot 4)."""
+    d.rectangle([2, 3, 9, 10], outline=INK)
+    d.line([(4, 6), (7, 6)], fill=INK_DIM)
+    d.line([(4, 8), (7, 8)], fill=INK_FAINT)
+    d.ellipse([10, 4, 12, 6], fill=INK)
+    d.ellipse([11, 7, 13, 9], fill=INK_DIM)
+    d.ellipse([9, 9, 11, 11], fill=INK_FAINT)
 
 
-def _draw_firmware(d: ImageDraw.ImageDraw) -> None:
-    d.rectangle([3, 4, 12, 11], outline=INK)
-    for x in (5, 8, 11):
-        d.line([(x, 4), (x, 2)], fill=INK_DIM)
-        d.line([(x, 11), (x, 13)], fill=INK_DIM)
-
-
-def _draw_font(d: ImageDraw.ImageDraw) -> None:
-    d.line([(4, 12), (7, 3), (10, 12)], fill=INK)
-    d.line([(5, 9), (9, 9)], fill=INK_DIM)
-
-
-def _draw_language(d: ImageDraw.ImageDraw) -> None:
-    d.ellipse([3, 3, 12, 12], outline=INK)
-    d.line([(3, 8), (12, 8)], fill=INK_DIM)
-    d.arc([3, 3, 12, 12], 270, 90, fill=INK_DIM)
-
-
-def _draw_config(d: ImageDraw.ImageDraw) -> None:
-    d.ellipse([4, 4, 11, 11], outline=INK)
-    for i in range(8):
-        a = i * math.pi / 4
-        x0 = 7.5 + 4.5 * math.cos(a)
-        y0 = 7.5 + 4.5 * math.sin(a)
-        x1 = 7.5 + 2.5 * math.cos(a)
-        y1 = 7.5 + 2.5 * math.sin(a)
-        d.line([(x0, y0), (x1, y1)], fill=INK_DIM, width=1)
-
-
-def _draw_plugin(d: ImageDraw.ImageDraw) -> None:
-    d.rectangle([3, 3, 8, 8], outline=INK)
-    d.rectangle([8, 8, 13, 13], outline=INK)
-    d.line([(8, 3), (8, 8)], fill=INK_DIM)
-    d.line([(3, 8), (8, 8)], fill=INK_DIM)
-
-
-def _draw_bookmark(d: ImageDraw.ImageDraw) -> None:
-    d.polygon([(4, 3), (12, 3), (12, 13), (8, 10), (4, 13)], outline=INK)
-
-
-def _draw_preset(d: ImageDraw.ImageDraw) -> None:
-    d.line([(3, 5), (13, 5)], fill=INK_FAINT)
-    d.ellipse([5, 4, 7, 6], fill=INK)
-    d.line([(3, 8), (13, 8)], fill=INK_FAINT)
-    d.ellipse([9, 7, 11, 9], fill=INK)
-    d.line([(3, 11), (13, 11)], fill=INK_FAINT)
-    d.ellipse([6, 10, 8, 12], fill=INK)
-
-
-def _draw_queued(d: ImageDraw.ImageDraw) -> None:
-    for oy in (2, 5, 8):
-        d.line([(3, oy + 1), (11, oy + 1)], fill=INK_DIM)
-        d.rectangle([3, oy, 5, oy + 2], fill=INK)
-
-
-def _draw_moving(d: ImageDraw.ImageDraw) -> None:
-    d.polygon([(3, 7), (7, 4), (7, 10)], fill=INK)
-    d.polygon([(13, 7), (9, 4), (9, 10)], fill=INK_DIM)
-
-
-def _draw_keyboard(d: ImageDraw.ImageDraw) -> None:
-    d.rectangle([2, 4, 13, 12], outline=INK)
-    for x in (4, 7, 10):
-        for y in (6, 9):
-            d.rectangle([x, y, x + 1, y + 1], fill=INK_DIM)
-
-
-def _draw_reverse_cursor(d: ImageDraw.ImageDraw) -> None:
-    d.polygon([(12, 3), (12, 12), (4, 7)], fill=INK)
-
-
-def _draw_question(d: ImageDraw.ImageDraw) -> None:
-    d.arc([4, 3, 11, 9], 200, 340, fill=INK)
-    d.point((7, 11), fill=INK)
-    d.point((7, 13), fill=INK)
+def _draw_menu_shortcuts(d: ImageDraw.ImageDraw) -> None:
+    """Shortcuts — keyboard grid + lightning bolt (Icon_Bookmark, slot 10)."""
+    d.rectangle([2, 7, 13, 13], outline=INK)
+    d.line([(5, 7), (5, 13)], fill=INK_DIM)
+    d.line([(9, 7), (9, 13)], fill=INK_DIM)
+    d.line([(2, 10), (13, 10)], fill=INK_DIM)
+    d.polygon([(4, 2), (7, 6), (6, 6), (8, 10), (5, 7), (6, 7)], fill=INK)
 
 
 def _draw_menu_setting(d: ImageDraw.ImageDraw) -> None:
-    d.line([(4, 4), (11, 11)], fill=INK, width=1)
-    d.line([(11, 4), (4, 11)], fill=INK_DIM, width=1)
-    d.ellipse([3, 3, 5, 5], fill=INK)
-    d.ellipse([10, 10, 12, 12], fill=INK)
+    """Per-item settings — clock face (Icon_Menu_setting, slot 17; shared fallback)."""
+    d.ellipse([3, 3, 12, 12], outline=INK)
+    d.ellipse([6, 6, 9, 9], fill=INK_FAINT)
+    d.line([(7, 7), (7, 5)], fill=INK)
+    d.line([(7, 7), (10, 8)], fill=INK)
 
 
-def _draw_menu_function(d: ImageDraw.ImageDraw) -> None:
-    d.rectangle([4, 4, 11, 11], outline=INK)
-    d.line([(6, 7), (10, 7)], fill=INK_DIM)
-    d.line([(8, 5), (8, 10)], fill=INK_DIM)
+def _draw_menu_settings(d: ImageDraw.ImageDraw) -> None:
+    """Settings root — cog + submenu arrow (Icon_Submenu_Entered, slot 20)."""
+    d.ellipse([2, 4, 9, 11], outline=INK)
+    d.ellipse([4, 6, 7, 9], fill=INK_FAINT)
+    for i in range(6):
+        a = i * math.pi / 3
+        x0 = 5.5 + 5 * math.cos(a)
+        y0 = 7.5 + 5 * math.sin(a)
+        x1 = 5.5 + 3 * math.cos(a)
+        y1 = 7.5 + 3 * math.sin(a)
+        d.line([(x0, y0), (x1, y1)], fill=INK, width=1)
+    d.polygon([(10, 6), (10, 9), (13, 7)], fill=INK)
 
 
-def _draw_submenu(d: ImageDraw.ImageDraw) -> None:
-    d.polygon([(5, 4), (11, 7), (5, 10)], fill=INK)
+def _draw_menu_general_settings(d: ImageDraw.ImageDraw) -> None:
+    """General Settings — three sliders (Icon_General_settings_menu, slot 23)."""
+    for y, knob in ((4, 9), (7, 6), (10, 11)):
+        d.line([(2, y), (13, y)], fill=INK_DIM)
+        d.rectangle([knob - 1, y - 1, knob + 1, y + 1], fill=INK)
 
 
-def _draw_submenu_entered(d: ImageDraw.ImageDraw) -> None:
-    d.polygon([(4, 5), (7, 11), (10, 5)], fill=INK)
-
-
-def _draw_recording(d: ImageDraw.ImageDraw) -> None:
+def _draw_menu_system(d: ImageDraw.ImageDraw) -> None:
     d.ellipse([4, 4, 11, 11], outline=INK)
-    d.ellipse([6, 6, 9, 9], fill=INK)
+    d.ellipse([6, 6, 9, 9], fill=INK_FAINT)
+    for i in range(8):
+        a = i * math.pi / 4
+        x0 = 7.5 + 5 * math.cos(a)
+        y0 = 7.5 + 5 * math.sin(a)
+        x1 = 7.5 + 3 * math.cos(a)
+        y1 = 7.5 + 3 * math.sin(a)
+        d.line([(x0, y0), (x1, y1)], fill=INK, width=1)
 
 
-def _draw_voice(d: ImageDraw.ImageDraw) -> None:
-    d.rectangle([6, 4, 9, 9], outline=INK)
-    d.polygon([(5, 9), (10, 9), (8, 12)], fill=INK_DIM)
-    d.line([(8, 12), (8, 13)], fill=INK)
-
-
-def _draw_general_settings(d: ImageDraw.ImageDraw) -> None:
-    d.arc([4, 3, 11, 10], 20, 160, fill=INK)
-    d.line([(4, 10), (4, 13)], fill=INK)
-    d.ellipse([2, 12, 6, 14], outline=INK)
-
-
-def _draw_system_menu(d: ImageDraw.ImageDraw) -> None:
-    _draw_config(d)
-
-
-def _draw_playback_menu(d: ImageDraw.ImageDraw) -> None:
-    _draw_audio(d)
-
-
-def _draw_display_menu(d: ImageDraw.ImageDraw) -> None:
-    d.rectangle([3, 4, 12, 11], outline=INK)
+def _draw_menu_now_playing(d: ImageDraw.ImageDraw) -> None:
+    d.rectangle([3, 3, 12, 11], outline=INK)
+    d.polygon([(6, 5), (6, 10), (11, 7)], fill=INK)
     d.line([(5, 12), (10, 12)], fill=INK_DIM)
-    d.point((6, 13), fill=INK_DIM)
-    d.point((9, 13), fill=INK_DIM)
 
 
-def _draw_remote_display(d: ImageDraw.ImageDraw) -> None:
-    d.rectangle([4, 5, 11, 10], outline=INK_DIM)
-    d.rectangle([2, 6, 5, 9], outline=INK)
-
-
-def _draw_radio(d: ImageDraw.ImageDraw) -> None:
-    d.rectangle([3, 6, 12, 11], outline=INK)
-    d.ellipse([5, 8, 7, 10], fill=INK_DIM)
-    for x in (9, 10, 11):
-        d.line([(x, 7), (x, 10)], fill=INK_DIM)
-
-
-def _draw_file_view(d: ImageDraw.ImageDraw) -> None:
-    d.rectangle([3, 4, 9, 12], outline=INK_DIM)
-    d.ellipse([8, 7, 13, 12], outline=INK)
-    d.line([(10, 10), (12, 12)], fill=INK)
-
-
-def _draw_eq(d: ImageDraw.ImageDraw) -> None:
-    for x, h in ((4, 6), (7, 10), (10, 4)):
-        d.line([(x, 12), (x, 12 - h)], fill=INK, width=1)
+# Icon indices from apps/gui/icon.h (0-based after Icon_NOICON=-1).
+# Menu assignments from apps/root_menu.c, apps/menus/main_menu.c, theme_menu.c.
+MENU_ICON_OVERRIDES: dict[int, object] = {
+    2: _draw_menu_playlist,           # Playlists
+    4: _draw_menu_theme,              # Theme Settings (Icon_Wps)
+    9: _draw_menu_plugin,             # Plugins
+    10: _draw_menu_shortcuts,         # Shortcuts (Icon_Bookmark)
+    17: _draw_menu_setting,           # Time & Date + MT_SETTING fallback
+    20: _draw_menu_settings,          # Settings root (Icon_Submenu_Entered)
+    23: _draw_menu_general_settings,  # General Settings
+    24: _draw_menu_system,            # System
+    25: _draw_menu_now_playing,       # Now Playing
+    29: _draw_menu_files,             # Files
+}
 
 
 def _rockbox_tile() -> Image.Image:
     tile = Image.new("RGBA", (ICON_SIZE, ICON_SIZE), (0, 0, 0, 0))
-    gray = eye_gray(10)
-    paint_eye(tile, 3, 3, gray, INK)
+    gray = eye_gray(13)
+    w, h = gray.size
+    paint_eye(tile, (ICON_SIZE - w) // 2, (ICON_SIZE - h) // 2, gray, INK)
     return tile
 
 
-def make_iconset() -> Image.Image:
-    drawers = [
-        _draw_audio,
-        _draw_folder,
-        _draw_playlist,
-        _draw_cursor,
-        _draw_wps,
-        _draw_firmware,
-        _draw_font,
-        _draw_language,
-        _draw_config,
-        _draw_plugin,
-        _draw_bookmark,
-        _draw_preset,
-        _draw_queued,
-        _draw_moving,
-        _draw_keyboard,
-        _draw_reverse_cursor,
-        _draw_question,
-        _draw_menu_setting,
-        _draw_menu_function,
-        _draw_submenu,
-        _draw_submenu_entered,
-        _draw_recording,
-        _draw_voice,
-        _draw_general_settings,
-        _draw_system_menu,
-        _draw_playback_menu,
-        _draw_display_menu,
-        _draw_remote_display,
-        _draw_radio,
-        _draw_file_view,
-        _draw_eq,
-    ]
-    if len(drawers) != ICON_COUNT - 1:
-        raise ValueError(f"expected {ICON_COUNT - 1} icon drawers, got {len(drawers)}")
-    strip = Image.new("RGBA", (ICON_SIZE, ICON_SIZE * ICON_COUNT), (0, 0, 0, 0))
-    for idx, drawer in enumerate(drawers):
-        strip.paste(_icon_tile(drawer), (0, idx * ICON_SIZE))
+def _apply_menu_icon_overrides(strip: Image.Image) -> Image.Image:
+    for idx, draw_fn in MENU_ICON_OVERRIDES.items():
+        strip.paste(_icon_tile(draw_fn), (0, idx * ICON_SIZE))
     strip.paste(_rockbox_tile(), (0, (ICON_COUNT - 1) * ICON_SIZE))
     return strip
 
 
-def _ensure_tango_viewers_ref() -> None:
-    if TANGO_VIEWERS_REF.exists():
+def _ensure_tango_asset(path: Path, url: str) -> None:
+    if path.exists():
         return
     import urllib.request
 
-    TANGO_VIEWERS_REF.parent.mkdir(parents=True, exist_ok=True)
-    url = "https://git.rockbox.org/cgit/rockbox.git/plain/icons/tango_icons_viewers.16x16.bmp"
-    urllib.request.urlretrieve(url, TANGO_VIEWERS_REF)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    urllib.request.urlretrieve(url, path)
 
 
 def recolor_icon_strip(src: Image.Image) -> Image.Image:
-    """Map default Tango viewer glyphs to the Elma amber palette."""
+    """Map Tango glyphs to the Elma amber palette while keeping their shading."""
     src = src.convert("RGBA")
     out = Image.new("RGBA", src.size)
     spx, opx = src.load(), out.load()
@@ -629,13 +516,32 @@ def recolor_icon_strip(src: Image.Image) -> Image.Image:
                 opx[x, y] = (0, 0, 0, 0)
                 continue
             lum = (r * 0.299 + g * 0.587 + b * 0.114) / 255.0
-            col = INK if lum > 0.62 else INK_DIM if lum > 0.35 else INK_FAINT
+            if lum > 0.72:
+                col = INK
+            elif lum > 0.48:
+                col = INK_DIM
+            elif lum > 0.28:
+                col = INK_FAINT
+            else:
+                col = INK_SHADOW
             opx[x, y] = (*col, a)
     return out
 
 
+def make_iconset() -> Image.Image:
+    _ensure_tango_asset(
+        TANGO_REF,
+        "https://git.rockbox.org/cgit/rockbox.git/plain/icons/tango_icons.16x16.bmp",
+    )
+    strip = recolor_icon_strip(Image.open(TANGO_REF))
+    return _apply_menu_icon_overrides(strip)
+
+
 def make_viewers_iconset() -> Image.Image:
-    _ensure_tango_viewers_ref()
+    _ensure_tango_asset(
+        TANGO_VIEWERS_REF,
+        "https://git.rockbox.org/cgit/rockbox.git/plain/icons/tango_icons_viewers.16x16.bmp",
+    )
     return recolor_icon_strip(Image.open(TANGO_VIEWERS_REF))
 
 
@@ -657,13 +563,49 @@ def save_bmp(path: Path, img: Image.Image) -> None:
     img.save(path, "BMP")
 
 
+def _bgra_pixel_rows(img: Image.Image) -> bytes:
+    img = img.convert("RGBA")
+    w, h = img.size
+    px = img.load()
+    rows = bytearray()
+    for y in range(h - 1, -1, -1):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            rows.extend((b, g, r, a))
+    return bytes(rows)
+
+
+def save_bmp32_rgba(path: Path, img: Image.Image, template: Path) -> None:
+    """Write a Rockbox-compatible 32-bit BMP using the official icon header layout."""
+    import struct
+
+    img = img.convert("RGBA")
+    w, h = img.size
+    with open(template, "rb") as f:
+        header = bytearray(f.read(122))
+
+    row_bytes = w * 4
+    pixel_data_size = row_bytes * h
+    file_size = 122 + pixel_data_size
+    struct.pack_into("<I", header, 2, file_size)
+    struct.pack_into("<i", header, 18, w)
+    struct.pack_into("<i", header, 22, h)
+    struct.pack_into("<I", header, 34, pixel_data_size)
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "wb") as f:
+        f.write(header)
+        f.write(_bgra_pixel_rows(img))
+
+
 def save_icon_bmp(path: Path, img: Image.Image) -> None:
-    """Rockbox treats magenta as transparent when icons lack a 32-bit alpha plane."""
-    if img.mode == "RGBA":
-        rgb = Image.new("RGB", img.size, CHROMA)
-        rgb.paste(img, mask=img.split()[3])
-        img = rgb
-    save_bmp(path, img)
+    template = TANGO_VIEWERS_REF if img.height <= 176 else TANGO_REF
+    _ensure_tango_asset(
+        template,
+        "https://git.rockbox.org/cgit/rockbox.git/plain/icons/"
+        + ("tango_icons_viewers.16x16.bmp" if img.height <= 176 else "tango_icons.16x16.bmp"),
+    )
+    save_bmp32_rgba(path, img, template)
 
 
 def main() -> None:
