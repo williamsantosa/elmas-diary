@@ -48,7 +48,7 @@
 # Prev / next centered in gap between album art (y=188) and progress bar (y=209)
 %V(8,192,148,14,1)
 %Vf(8B6F47)
-%s%al%Vp(-1,Prev · %?it<%it|%fn>)
+%al%Vp(-1,Prev · %?it<%it|%fn>)
 #
 # Next track (right)
 %V(164,192,148,14,1)

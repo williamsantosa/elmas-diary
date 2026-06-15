@@ -2,6 +2,8 @@
 
 A Rockbox theme for the **HiFi Walker H2** (320×240, 16-bit color, `erosqnative`).
 
+![Play Image](image.png)
+
 ## Repository layout
 
 Theme files mirror the on-device `.rockbox` layout:
@@ -18,7 +20,7 @@ Theme files mirror the on-device `.rockbox` layout:
 
 1. Connect the player via USB.
 2. Copy the contents of `.rockbox/` into the player's `/.rockbox/` folder (merge, don't replace the whole tree).
-3. Ensure `11-Sazanami-Mincho.fnt` is in `/.rockbox/fonts/` ([Rockbox font pack](https://www.rockbox.org/daily.shtml)) for Japanese track titles.
+3. Ensure `13-Sazanami-Mincho.fnt` is in `/.rockbox/fonts/` (bundled in this repo, or from the [Rockbox font pack](https://www.rockbox.org/daily.shtml)) for Japanese track titles.
 4. On the device: **Settings → Theme Settings → Browse Theme Files → h2yorushika**.
 
 ## Simulator on Windows 11
@@ -41,7 +43,7 @@ This repo holds **only the theme**. Point the simulator at it with the sync scri
    - **`rockboxui-win32-aigo-eros-q-k-native-247-....zip`**
 2. Extract to `C:\RockboxSim` (or any path you prefer).
 3. Run `make install` equivalent once by starting `rockboxui.exe` — it populates `simdisk/.rockbox/` with defaults.
-4. The font `11-Sazanami-Mincho.fnt` is included in most sim installs under `simdisk/.rockbox/fonts/`.
+4. The font `13-Sazanami-Mincho.fnt` is bundled in this repo under `.rockbox/fonts/`. The simulator copy is applied by `sync-to-sim.ps1`.
 5. Optionally add test MP3s under `C:\RockboxSim\simdisk\` to preview the WPS while playing.
 
 ### Sync theme changes to the simulator

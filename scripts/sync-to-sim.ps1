@@ -59,7 +59,7 @@ $configPath = Join-Path $target "config.cfg"
 if (Test-Path $configPath) {
     $lines = Get-Content $configPath
     $updated = $lines | ForEach-Object {
-        if ($_ -match '^(font|wps|sbs|statusbar|iconset|viewers iconset): ') {
+        if ($_ -match '^(font|wps|sbs|statusbar|iconset|viewers iconset|peak meter dbfs|peak meter min|peak meter max): ') {
             switch -Regex ($_) {
                 '^font: '              { 'font: /.rockbox/fonts/13-Sazanami-Mincho.fnt' }
                 '^wps: '               { 'wps: /.rockbox/wps/h2yorushika.wps' }
@@ -67,6 +67,9 @@ if (Test-Path $configPath) {
                 '^statusbar: '         { 'statusbar: custom' }
                 '^iconset: '           { 'iconset: /.rockbox/icons/h2yorushika-icons.bmp' }
                 '^viewers iconset: '   { 'viewers iconset: /.rockbox/icons/h2yorushika-viewers.bmp' }
+                '^peak meter dbfs: '   { 'peak meter dbfs: on' }
+                '^peak meter min: '    { 'peak meter min: 18' }
+                '^peak meter max: '    { 'peak meter max: 0' }
                 default                { $_ }
             }
         } else { $_ }
@@ -79,8 +82,14 @@ if (Test-Path $configPath) {
     if (-not $hasViewers) {
         $updated += 'viewers iconset: /.rockbox/icons/h2yorushika-viewers.bmp'
     }
+    $hasPeakDbfs = $updated | Where-Object { $_ -match '^peak meter dbfs: ' }
+    $hasPeakMin = $updated | Where-Object { $_ -match '^peak meter min: ' }
+    $hasPeakMax = $updated | Where-Object { $_ -match '^peak meter max: ' }
+    if (-not $hasPeakDbfs) { $updated += 'peak meter dbfs: on' }
+    if (-not $hasPeakMin) { $updated += 'peak meter min: 18' }
+    if (-not $hasPeakMax) { $updated += 'peak meter max: 0' }
     Set-Content -Path $configPath -Value $updated -Encoding UTF8
-    Write-Host "Updated config.cfg (font, wps, sbs, iconset)"
+    Write-Host "Updated config.cfg (font, wps, sbs, iconset, peak meter)"
 }
 
 Write-Host "Restart rockboxui.exe, then Settings -> Theme Settings -> Browse Theme Files -> h2yorushika"
