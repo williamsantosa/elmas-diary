@@ -25,7 +25,7 @@ $items = @(
     @{ Src = "themes\h2yorushika.cfg"; Dst = "themes\h2yorushika.cfg" },
     @{ Src = "wps\h2yorushika.wps"; Dst = "wps\h2yorushika.wps" },
     @{ Src = "wps\h2yorushika.sbs"; Dst = "wps\h2yorushika.sbs" },
-    @{ Src = "fonts\11-Sazanami-Mincho.fnt"; Dst = "fonts\11-Sazanami-Mincho.fnt" }
+    @{ Src = "fonts\13-Sazanami-Mincho.fnt"; Dst = "fonts\13-Sazanami-Mincho.fnt" }
 )
 
 $imageNames = @("backdrop.bmp", "pb_back.bmp", "logo.bmp", "frame.bmp", "playmode.bmp", "shuffle.bmp", "repeat.bmp", "vubar.bmp", "divider.bmp", "battery.bmp", "knob.bmp")
