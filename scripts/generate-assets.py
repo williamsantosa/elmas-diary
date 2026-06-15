@@ -15,6 +15,7 @@ BG = (0x1C, 0x18, 0x14)
 BG_LIGHT = (0x28, 0x22, 0x1C)
 AMBER = (0x8B, 0x6F, 0x47)
 AMBER_LIGHT = (0xA8, 0x90, 0x70)
+BRIGHT = (0xC8, 0x9B, 0x5A)
 TRACK = (0x2A, 0x24, 0x1E)
 TRACK_EDGE = (0x3D, 0x35, 0x2C)
 DIM_AMBER = (0x4A, 0x3E, 0x30)
@@ -120,13 +121,56 @@ def make_frame(size: int = 104) -> Image.Image:
     return img
 
 
-def make_knob(w: int = 5, h: int = 15) -> Image.Image:
-    """Slider playhead for the progress bar: a solid amber bar (no transparency)."""
-    img = Image.new("RGB", (w, h), AMBER_LIGHT)
+def make_vubar(w: int = 12, h: int = 128) -> Image.Image:
+    """Solid bright-amber block. One segment of the side peak meters, shown when lit."""
+    return Image.new("RGB", (w, h), BRIGHT)
+
+
+def make_knob(w: int = 7, h: int = 15) -> Image.Image:
+    """Traveling marker for the progress bar: a small bright-amber bar."""
+    img = Image.new("RGB", (w, h), BRIGHT)
     px = img.load()
     for x in range(w):
         px[x, 0] = AMBER
         px[x, h - 1] = AMBER
+    return img
+
+
+def make_divider(w: int = 320, h: int = 2) -> Image.Image:
+    """Bright-amber rule under the top bar, faded at both ends."""
+    img = Image.new("RGB", (w, h))
+    px = img.load()
+    fade = 56
+    for x in range(w):
+        if x < fade:
+            t = x / fade
+        elif x > w - 1 - fade:
+            t = (w - 1 - x) / fade
+        else:
+            t = 1.0
+        col = lerp_rgb(bg_at(x, 14), BRIGHT, t)
+        for y in range(h):
+            px[x, y] = col
+    return img
+
+
+def make_battery(w: int = 22, h: int = 11) -> Image.Image:
+    """Three-frame strip: low (1 bar), mid (2 bars), full (3 bars)."""
+    bg = bg_at(262, 7)
+    img = Image.new("RGB", (w, h * 3), bg)
+    d = ImageDraw.Draw(img)
+    c = BRIGHT
+
+    def cell(oy: int, segs: int) -> None:
+        d.rectangle([1, oy + 2, 16, oy + 8], outline=c, width=1)
+        d.rectangle([17, oy + 4, 18, oy + 6], fill=c)
+        for i in range(segs):
+            x0 = 3 + i * 5
+            d.rectangle([x0, oy + 4, x0 + 2, oy + 6], fill=c)
+
+    cell(0, 1)
+    cell(h, 2)
+    cell(h * 2, 3)
     return img
 
 
@@ -213,11 +257,14 @@ def main() -> None:
     save_bmp(OUT / "pb.bmp", make_pb())
     save_bmp(OUT / "pb_back.bmp", make_pb_back())
     save_bmp(OUT / "logo.bmp", make_logo())
-    save_bmp(OUT / "frame.bmp", make_frame())
+    save_bmp(OUT / "frame.bmp", make_frame(132))
     save_bmp(OUT / "playmode.bmp", make_playmode())
-    save_bmp(OUT / "knob.bmp", make_knob())
     save_bmp(OUT / "shuffle.bmp", make_shuffle())
     save_bmp(OUT / "repeat.bmp", make_repeat())
+    save_bmp(OUT / "vubar.bmp", make_vubar())
+    save_bmp(OUT / "divider.bmp", make_divider())
+    save_bmp(OUT / "battery.bmp", make_battery())
+    save_bmp(OUT / "knob.bmp", make_knob())
     print(f"Wrote 24-bit BMP assets to {OUT}")
 
 

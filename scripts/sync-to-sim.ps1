@@ -28,7 +28,7 @@ $items = @(
     @{ Src = "fonts\11-Sazanami-Mincho.fnt"; Dst = "fonts\11-Sazanami-Mincho.fnt" }
 )
 
-$imageNames = @("backdrop.bmp", "pb_back.bmp", "pb.bmp", "logo.bmp", "frame.bmp", "playmode.bmp", "knob.bmp", "shuffle.bmp", "repeat.bmp")
+$imageNames = @("backdrop.bmp", "pb_back.bmp", "logo.bmp", "frame.bmp", "playmode.bmp", "shuffle.bmp", "repeat.bmp", "vubar.bmp", "divider.bmp", "battery.bmp", "knob.bmp")
 
 foreach ($item in $items) {
     $from = Join-Path $source $item.Src
