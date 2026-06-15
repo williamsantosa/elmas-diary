@@ -27,6 +27,8 @@ $items = @(
     @{ Src = "wps\h2yorushika.sbs"; Dst = "wps\h2yorushika.sbs" }
 )
 
+$imageNames = @("backdrop.bmp", "pb_back.bmp", "pb.bmp")
+
 foreach ($item in $items) {
     $from = Join-Path $source $item.Src
     $toDir = Join-Path $target (Split-Path $item.Dst -Parent)
@@ -35,14 +37,16 @@ foreach ($item in $items) {
     Write-Host "Copied $($item.Src)"
 }
 
-$imagesSrc = Join-Path $source "wps\h2yorushika\images"
+$imagesSrc = Join-Path $source "wps\h2yorushika"
 $imagesDst = Join-Path $target "wps\h2yorushika"
-if (Test-Path $imagesSrc) {
-    New-Item -ItemType Directory -Force -Path $imagesDst | Out-Null
-    Get-ChildItem $imagesSrc -File | Where-Object { -not $_.Name.StartsWith(".") } | ForEach-Object {
-        Copy-Item $_.FullName -Destination $imagesDst -Force
-        Write-Host "Copied image $($_.Name)"
+New-Item -ItemType Directory -Force -Path $imagesDst | Out-Null
+foreach ($name in $imageNames) {
+    $from = Join-Path $imagesSrc $name
+    if (-not (Test-Path $from)) {
+        Write-Error "Missing $name — run: python scripts/generate-assets.py"
     }
+    Copy-Item -Path $from -Destination (Join-Path $imagesDst $name) -Force
+    Write-Host "Copied image $name"
 }
 
 Write-Host ""
