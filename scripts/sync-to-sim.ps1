@@ -24,7 +24,7 @@ New-Item -ItemType Directory -Force -Path $target | Out-Null
 $items = @(
     @{ Src = "themes\h2yorushika.cfg"; Dst = "themes\h2yorushika.cfg" },
     @{ Src = "wps\h2yorushika.wps"; Dst = "wps\h2yorushika.wps" },
-    @{ Src = "wps\h2yorushika.sbs"; Dst = "wps\h2yorushika.sbs" }
+    @{ Src = "fonts\11-Sazanami-Mincho.fnt"; Dst = "fonts\11-Sazanami-Mincho.fnt" }
 )
 
 $imageNames = @("backdrop.bmp", "pb_back.bmp", "pb.bmp")
@@ -51,4 +51,22 @@ foreach ($name in $imageNames) {
 
 Write-Host ""
 Write-Host "Synced to $target"
+
+$configPath = Join-Path $target "config.cfg"
+if (Test-Path $configPath) {
+    $lines = Get-Content $configPath
+    $updated = $lines | ForEach-Object {
+        if ($_ -match '^(font|wps|sbs): ') {
+            switch -Regex ($_) {
+                '^font: ' { 'font: /.rockbox/fonts/11-Sazanami-Mincho.fnt' }
+                '^wps: '  { 'wps: /.rockbox/wps/h2yorushika.wps' }
+                '^sbs: '  { 'sbs: -' }
+                default   { $_ }
+            }
+        } else { $_ }
+    }
+    Set-Content -Path $configPath -Value $updated -Encoding UTF8
+    Write-Host "Updated config.cfg (font, wps, sbs)"
+}
+
 Write-Host "Restart rockboxui.exe, then Settings -> Theme Settings -> Browse Theme Files -> h2yorushika"
