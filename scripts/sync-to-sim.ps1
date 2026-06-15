@@ -25,7 +25,9 @@ $items = @(
     @{ Src = "themes\h2yorushika.cfg"; Dst = "themes\h2yorushika.cfg" },
     @{ Src = "wps\h2yorushika.wps"; Dst = "wps\h2yorushika.wps" },
     @{ Src = "wps\h2yorushika.sbs"; Dst = "wps\h2yorushika.sbs" },
-    @{ Src = "fonts\13-Sazanami-Mincho.fnt"; Dst = "fonts\13-Sazanami-Mincho.fnt" }
+    @{ Src = "fonts\13-Sazanami-Mincho.fnt"; Dst = "fonts\13-Sazanami-Mincho.fnt" },
+    @{ Src = "icons\h2yorushika-icons.bmp"; Dst = "icons\h2yorushika-icons.bmp" },
+    @{ Src = "icons\h2yorushika-viewers.bmp"; Dst = "icons\h2yorushika-viewers.bmp" }
 )
 
 $imageNames = @("backdrop.bmp", "pb_back.bmp", "logo.bmp", "frame.bmp", "playmode.bmp", "shuffle.bmp", "repeat.bmp", "vubar.bmp", "divider.bmp", "battery.bmp", "knob.bmp")
@@ -57,18 +59,28 @@ $configPath = Join-Path $target "config.cfg"
 if (Test-Path $configPath) {
     $lines = Get-Content $configPath
     $updated = $lines | ForEach-Object {
-        if ($_ -match '^(font|wps|sbs|statusbar): ') {
+        if ($_ -match '^(font|wps|sbs|statusbar|iconset|viewers iconset): ') {
             switch -Regex ($_) {
-                '^font: '      { 'font: /.rockbox/fonts/11-Sazanami-Mincho.fnt' }
-                '^wps: '       { 'wps: /.rockbox/wps/h2yorushika.wps' }
-                '^sbs: '       { 'sbs: /.rockbox/wps/h2yorushika.sbs' }
-                '^statusbar: ' { 'statusbar: custom' }
-                default        { $_ }
+                '^font: '              { 'font: /.rockbox/fonts/13-Sazanami-Mincho.fnt' }
+                '^wps: '               { 'wps: /.rockbox/wps/h2yorushika.wps' }
+                '^sbs: '               { 'sbs: /.rockbox/wps/h2yorushika.sbs' }
+                '^statusbar: '         { 'statusbar: custom' }
+                '^iconset: '           { 'iconset: /.rockbox/icons/h2yorushika-icons.bmp' }
+                '^viewers iconset: '   { 'viewers iconset: /.rockbox/icons/h2yorushika-viewers.bmp' }
+                default                { $_ }
             }
         } else { $_ }
     }
+    $hasIconset = $updated | Where-Object { $_ -match '^iconset: ' }
+    $hasViewers = $updated | Where-Object { $_ -match '^viewers iconset: ' }
+    if (-not $hasIconset) {
+        $updated += 'iconset: /.rockbox/icons/h2yorushika-icons.bmp'
+    }
+    if (-not $hasViewers) {
+        $updated += 'viewers iconset: /.rockbox/icons/h2yorushika-viewers.bmp'
+    }
     Set-Content -Path $configPath -Value $updated -Encoding UTF8
-    Write-Host "Updated config.cfg (font, wps, sbs)"
+    Write-Host "Updated config.cfg (font, wps, sbs, iconset)"
 }
 
 Write-Host "Restart rockboxui.exe, then Settings -> Theme Settings -> Browse Theme Files -> h2yorushika"
