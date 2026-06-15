@@ -200,21 +200,9 @@ def make_backdrop(width: int = 320, height: int = 240) -> Image.Image:
     return img
 
 
-def make_pb(width: int = 304, height: int = 15) -> Image.Image:
-    img = Image.new("RGB", (width, height), TRACK)
-    px = img.load()
-    for x in range(width):
-        t = x / max(width - 1, 1)
-        color = lerp_rgb(AMBER, AMBER_LIGHT, t * 0.6)
-        for y in range(1, height - 1):
-            px[x, y] = color
-    for x in range(width):
-        px[x, 0] = TRACK_EDGE
-        px[x, height - 1] = TRACK_EDGE
-    for y in range(height):
-        px[0, y] = TRACK_EDGE
-        px[width - 1, y] = TRACK_EDGE
-    return img
+def make_pb(width: int = 304, height: int = 14) -> Image.Image:
+    """Solid amber fill for progress bar interior (border comes from pb_back)."""
+    return Image.new("RGB", (width, height), BRIGHT)
 
 
 def eye_gray(target_w: int) -> Image.Image:
@@ -276,7 +264,7 @@ def make_vubar(w: int = 138, h: int = 2) -> Image.Image:
     return Image.new("RGB", (w, h), BRIGHT)
 
 
-def make_knob(w: int = 7, h: int = 15) -> Image.Image:
+def make_knob(w: int = 7, h: int = 14) -> Image.Image:
     """Traveling marker for the progress bar: a small bright-amber bar."""
     img = Image.new("RGB", (w, h), BRIGHT)
     px = img.load()
@@ -564,16 +552,16 @@ def make_viewers_iconset() -> Image.Image:
     return recolor_icon_strip(Image.open(TANGO_VIEWERS_REF))
 
 
-def make_pb_back(width: int = 304, height: int = 15) -> Image.Image:
-    """Empty progress groove: dark fill, no amber. The amber pb.bmp fills over it."""
+def make_pb_back(width: int = 304, height: int = 14) -> Image.Image:
+    """Empty progress groove: dark interior with amber perimeter (matches volbar)."""
     img = Image.new("RGB", (width, height), TRACK)
     px = img.load()
     for x in range(width):
-        px[x, 0] = TRACK_EDGE
-        px[x, height - 1] = TRACK_EDGE
+        px[x, 0] = AMBER
+        px[x, height - 1] = AMBER
     for y in range(height):
-        px[0, y] = TRACK_EDGE
-        px[width - 1, y] = TRACK_EDGE
+        px[0, y] = AMBER
+        px[width - 1, y] = AMBER
     return img
 
 

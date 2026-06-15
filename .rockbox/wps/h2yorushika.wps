@@ -5,6 +5,7 @@
 %X(backdrop.bmp)
 %xl(F,frame.bmp,0,0)
 %xl(K,knob.bmp,0,0)
+%xl(G,pb_back.bmp,0,0)
 %xl(P,vubar.bmp,0,0)
 %xl(U,volbar.bmp,0,0)
 #
@@ -55,10 +56,9 @@
 %Vf(8B6F47)
 %s%arNext · %?It<%It|%Fn>
 #
-# Progress: 4px bottom margin; time row sits above it
+# Progress: groove + knob only (nobar suppresses Rockbox's default frame outline)
 %V(8,209,304,14,-)
-%Vf(8B6F47)
-%pb(0,0,304,14,nofill,slider,K)
+%pb(0,0,304,14,backdrop,G,nobar,slider,K)
 #
 # Elapsed / remaining (left), playlist position (center), total time (right)
 %V(8,224,304,12,1)
