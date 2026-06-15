@@ -385,7 +385,7 @@ def main() -> None:
     save_bmp(OUT / "pb.bmp", make_pb())
     save_bmp(OUT / "pb_back.bmp", make_pb_back())
     save_bmp(OUT / "logo.bmp", make_logo())
-    save_bmp(OUT / "frame.bmp", make_frame(132))
+    save_bmp(OUT / "frame.bmp", make_frame(140))
     save_bmp(OUT / "playmode.bmp", make_playmode())
     save_bmp(OUT / "shuffle.bmp", make_shuffle())
     save_bmp(OUT / "repeat.bmp", make_repeat())
